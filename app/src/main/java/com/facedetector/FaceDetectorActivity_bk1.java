@@ -1,11 +1,9 @@
 package com.facedetector;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -20,7 +18,6 @@ import android.util.Log;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -28,14 +25,12 @@ import android.widget.Toast;
 
 import com.facedetector.customview.DrawFacesView;
 
-import java.io.IOException;
 import java.util.List;
 
 import jp.co.cyberagent.android.gpuimage.GPUImageView;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageAlphaBlendFilter;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageEmbossFilter;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter;
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter;
 import jp.co.cyberagent.android.gpuimage.util.Rotation;
 
 /**
@@ -47,9 +42,9 @@ import jp.co.cyberagent.android.gpuimage.util.Rotation;
  *      desc   : 由于使用的是camera1，在P以上的版本可能无法使用
  * </pre>
  */
-public class FaceDetectorActivity extends AppCompatActivity {
+public class FaceDetectorActivity_bk1 extends AppCompatActivity {
 
-    private static final String TAG = FaceDetectorActivity.class.getSimpleName();
+    private static final String TAG = FaceDetectorActivity_bk1.class.getSimpleName();
     private static final int REQUEST_CAMERA_CODE = 0x100;
     private Camera mCamera;
     private SurfaceHolder mHolder;
@@ -61,7 +56,7 @@ public class FaceDetectorActivity extends AppCompatActivity {
     private GPUImageFilter gpuImageFilter ;
 
     public static void start(Context context) {
-        Intent intent = new Intent(context, FaceDetectorActivity.class);
+        Intent intent = new Intent(context, FaceDetectorActivity_bk1.class);
         context.startActivity(intent);
     }
 
@@ -165,24 +160,9 @@ public class FaceDetectorActivity extends AppCompatActivity {
         gpuImageView = findViewById(R.id.gpuimage);
         gpuImageView.setRotation(getRotation(getCameraOrientation()));
         gpuImageView.setRenderMode(GPUImageView.RENDERMODE_CONTINUOUSLY);
-        //setFilter();
-        facesView = findViewById(R.id.drawFacesView);
-
-        facesView.setOnDrawFacesViewListener(new DrawFacesView.OnDrawFacesViewListener() {
-            @Override
-            public void onBitMap(Bitmap bitmap) {
-//                FaceDetectorActivity.this.runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
-//                    }
-//                });
-                gpuImageAlphaBlendFilter.setBitmap(bitmap);
-                gpuImageView.setFilter(gpuImageAlphaBlendFilter);
-            }
-        });
-//        facesView =  new DrawFacesView(this);
-//        addContentView(facesView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setFilter();
+        facesView = new DrawFacesView(this);
+        addContentView(facesView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
     }
 
     private void setFilter(){
@@ -233,7 +213,7 @@ public class FaceDetectorActivity extends AppCompatActivity {
         Matrix matrix = new Matrix();
         Camera.CameraInfo info = new Camera.CameraInfo();
         // Need mirror for front camera.
-        boolean mirror = false ;//(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+        boolean mirror = true ;//(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
         matrix.setScale(mirror ? -1 : 1, 1);
         // This is the value for android.hardware.Camera.setDisplayOrientation.
         matrix.postRotate(90);
@@ -241,8 +221,8 @@ public class FaceDetectorActivity extends AppCompatActivity {
         // UI coordinates range from (0, 0) to (width, height).
 //        matrix.postScale(surfaceView.getWidth() / 2000f, surfaceView.getHeight() / 2000f);
 //        matrix.postTranslate(surfaceView.getWidth() / 2f, surfaceView.getHeight() / 2f);
-        matrix.postScale(facesView.getWidth() / 2000f, facesView.getHeight() / 2000f);
-        matrix.postTranslate(facesView.getWidth() / 2f, facesView.getHeight() / 2f);
+        matrix.postScale(480 / 2000f, 640 / 2000f);
+        matrix.postTranslate(480 / 2f, 640 / 2f);
         return matrix;
     }
 
@@ -328,9 +308,8 @@ public class FaceDetectorActivity extends AppCompatActivity {
             // 连续对焦
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
-        parameters.setRotation(getCameraOrientation());
         camera.cancelAutoFocus();
-        camera.setDisplayOrientation(getCameraOrientation());
+//        camera.setDisplayOrientation(270);
         camera.setParameters(parameters);
     }
 

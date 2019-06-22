@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 /**
  * 绘制脸部方框的view，实测发现返回的脸部数据中没有具体的眼睛，嘴巴等数据
  */
-public class DrawFacesView extends View {
+public class DrawFacesView_bk2 extends View {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(10);
     public interface OnDrawFacesViewListener{
@@ -38,17 +38,17 @@ public class DrawFacesView extends View {
     private Camera.Face[] faces;
     private boolean isClear;
 
-    private Bitmap mybitmap ;
+    private Bitmap bitmap ;
 
-    public DrawFacesView(Context context) {
+    public DrawFacesView_bk2(Context context) {
         this(context, null);
     }
 
-    public DrawFacesView(Context context, AttributeSet attrs) {
+    public DrawFacesView_bk2(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public DrawFacesView(Context context, AttributeSet attrs, int defStyle) {
+    public DrawFacesView_bk2(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init();
     }
@@ -59,7 +59,7 @@ public class DrawFacesView extends View {
         paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
         faces = new Camera.Face[]{};
-        mybitmap = BitmapFactory.decodeResource(getContext().getResources(), R.mipmap.d);
+        bitmap = BitmapFactory.decodeResource(getContext().getResources(), R.mipmap.d);
     }
 
     @Override
@@ -83,8 +83,7 @@ public class DrawFacesView extends View {
                     Bitmap bitmap = Bitmap.createBitmap(canvas.getWidth() , canvas.getHeight(),Bitmap.Config.ARGB_4444);
                     Canvas myCanvas = new Canvas(bitmap);
                     myCanvas.setMatrix(matrix);
-                    //myCanvas.drawRect(face.rect, paint);
-                    myCanvas.drawBitmap(mybitmap,face.rect.left, face.rect.top, null);
+                    myCanvas.drawRect(face.rect, paint);
                     if(onDrawFacesViewListener != null){
                         onDrawFacesViewListener.onBitMap(bitmap);
                     }

@@ -1,11 +1,9 @@
 package com.facedetector;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -17,8 +15,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.OrientationEventListener;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.Window;
@@ -28,15 +24,10 @@ import android.widget.Toast;
 
 import com.facedetector.customview.DrawFacesView;
 
-import java.io.IOException;
 import java.util.List;
 
 import jp.co.cyberagent.android.gpuimage.GPUImageView;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageAlphaBlendFilter;
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageEmbossFilter;
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter;
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter;
-import jp.co.cyberagent.android.gpuimage.util.Rotation;
 
 /**
  * <pre>
@@ -47,10 +38,11 @@ import jp.co.cyberagent.android.gpuimage.util.Rotation;
  *      desc   : 由于使用的是camera1，在P以上的版本可能无法使用
  * </pre>
  */
-public class FaceDetectorActivity extends AppCompatActivity {
+public class FaceDetectorActivity_bk extends AppCompatActivity {
 
-    private static final String TAG = FaceDetectorActivity.class.getSimpleName();
+    private static final String TAG = FaceDetectorActivity_bk.class.getSimpleName();
     private static final int REQUEST_CAMERA_CODE = 0x100;
+    private SurfaceView surfaceView;
     private Camera mCamera;
     private SurfaceHolder mHolder;
     private DrawFacesView facesView;
@@ -58,10 +50,9 @@ public class FaceDetectorActivity extends AppCompatActivity {
 
     private GPUImageAlphaBlendFilter gpuImageAlphaBlendFilter = new GPUImageAlphaBlendFilter() ;
     private GPUImageView gpuImageView ;
-    private GPUImageFilter gpuImageFilter ;
 
     public static void start(Context context) {
-        Intent intent = new Intent(context, FaceDetectorActivity.class);
+        Intent intent = new Intent(context, FaceDetectorActivity_bk.class);
         context.startActivity(intent);
     }
 
@@ -89,10 +80,10 @@ public class FaceDetectorActivity extends AppCompatActivity {
                 }
                 return;
             }
+            // openSurfaceView();
             setUpCamera();
 
         }
-        startOrientationListener();
     }
 
     private void setUpCamera(){
@@ -117,10 +108,8 @@ public class FaceDetectorActivity extends AppCompatActivity {
                     @Override
                     public void onPreviewFrame(byte[] bytes, Camera camera) {
                         Log.d(TAG, "onPreviewFrame" + bytes.length + "");
-                        gpuImageView.updatePreviewFrame(bytes,640,480);
                     }
                 });
-                setCameraParms(mCamera, 480, 640);
                 mCamera.startPreview();
             }
         }catch (Exception e){
@@ -128,66 +117,93 @@ public class FaceDetectorActivity extends AppCompatActivity {
         }
     }
 
-    private int getCameraOrientation() {
-        int degrees = 0 ;
-        switch (this.getWindowManager().getDefaultDisplay().getRotation()){
-            case Surface
-                    .ROTATION_0:
-                degrees = 0 ;
-                break;
-            case Surface.ROTATION_90:
-                degrees = 90;
-                break;
-            case Surface.ROTATION_180:
-                degrees = 180;
-                break;
-            case Surface.ROTATION_270:
-                degrees = 270;
-                break;
-        }
-        return (90 + degrees) % 360;
-    }
-
-    private Rotation getRotation(int orientation) {
-        if(orientation == 90){
-            return  Rotation.ROTATION_90;
-        } else if(orientation == 180){
-            return Rotation.ROTATION_180;
-        } else if(orientation == 270){
-            return Rotation.ROTATION_270;
-        } else {
-            return Rotation.NORMAL ;
-        }
-    }
-
-
-    private void initViews() {
-        gpuImageView = findViewById(R.id.gpuimage);
-        gpuImageView.setRotation(getRotation(getCameraOrientation()));
-        gpuImageView.setRenderMode(GPUImageView.RENDERMODE_CONTINUOUSLY);
-        //setFilter();
-        facesView = findViewById(R.id.drawFacesView);
-
-        facesView.setOnDrawFacesViewListener(new DrawFacesView.OnDrawFacesViewListener() {
+    /**
+     * 把摄像头的图像显示到SurfaceView
+     */
+    private void openSurfaceView() {
+        mHolder = surfaceView.getHolder();
+        mHolder.addCallback(new SurfaceHolder.Callback() {
             @Override
-            public void onBitMap(Bitmap bitmap) {
-//                FaceDetectorActivity.this.runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
+            public void surfaceCreated(SurfaceHolder holder) {
+                int frontIndex = 0 ;
+                int cameraCount = Camera.getNumberOfCameras();
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                for(int cameraIndex = 0; cameraIndex<cameraCount; cameraIndex++){
+                    Camera.getCameraInfo(cameraIndex, info);
+                    if(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT){
+                        frontIndex = cameraIndex;
+                    }
+//                    else if(info.facing == CameraInfo.CAMERA_FACING_BACK){
+//                        backIndex = cameraIndex;
 //                    }
-//                });
-                gpuImageAlphaBlendFilter.setBitmap(bitmap);
-                gpuImageView.setFilter(gpuImageAlphaBlendFilter);
+                }
+
+                if (mCamera == null) {
+                    mCamera = Camera.open(frontIndex);
+                   // try {
+                        //mCamera.addCallbackBuffer(new byte[]);
+                        mCamera.setFaceDetectionListener(new FaceDetectorListener());
+                       // mCamera.setPreviewDisplay(holder);
+                        startFaceDetection();
+                        mCamera.setPreviewCallback(new Camera.PreviewCallback() {
+                            @Override
+                            public void onPreviewFrame(byte[] bytes, Camera camera) {
+                                Log.d(TAG,"onPreviewFrame" + bytes.length + "");
+                            }
+                        });
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+                }
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                if (mHolder.getSurface() == null) {
+                    // preview surface does not exist
+                    Log.e(TAG, "mHolder.getSurface() == null");
+                    return;
+                }
+
+                try {
+                    mCamera.stopPreview();
+
+                } catch (Exception e) {
+                    // ignore: tried to stop a non-existent preview
+                    Log.e(TAG, "Error stopping camera preview: " + e.getMessage());
+                }
+
+                try {
+                    //mCamera.setPreviewDisplay(mHolder);
+                    int measuredWidth = surfaceView.getMeasuredWidth();
+                    int measuredHeight = surfaceView.getMeasuredHeight();
+                    setCameraParms(mCamera, measuredWidth, measuredHeight);
+                    mCamera.startPreview();
+
+                    startFaceDetection(); // re-start face detection feature
+
+                } catch (Exception e) {
+                    // ignore: tried to stop a non-existent preview
+                    Log.d(TAG, "Error starting camera preview: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                // mCamera.setPreviewCallback(null);// 防止 Method called after release()
+                mCamera.stopPreview();
+                // mCamera.setPreviewCallback(null);
+                mCamera.release();
+                mCamera = null;
             }
         });
-//        facesView =  new DrawFacesView(this);
-//        addContentView(facesView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
     }
 
-    private void setFilter(){
-        gpuImageFilter = new GPUImageEmbossFilter();
-        gpuImageView.setFilter(gpuImageFilter);
+    private void initViews() {
+        surfaceView = new SurfaceView(this);
+        facesView = new DrawFacesView(this);
+        addContentView(surfaceView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        addContentView(facesView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
     }
 
     @Override
@@ -233,16 +249,14 @@ public class FaceDetectorActivity extends AppCompatActivity {
         Matrix matrix = new Matrix();
         Camera.CameraInfo info = new Camera.CameraInfo();
         // Need mirror for front camera.
-        boolean mirror = false ;//(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+        boolean mirror = true ;//(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
         matrix.setScale(mirror ? -1 : 1, 1);
         // This is the value for android.hardware.Camera.setDisplayOrientation.
         matrix.postRotate(90);
         // Camera driver coordinates range from (-1000, -1000) to (1000, 1000).
         // UI coordinates range from (0, 0) to (width, height).
-//        matrix.postScale(surfaceView.getWidth() / 2000f, surfaceView.getHeight() / 2000f);
-//        matrix.postTranslate(surfaceView.getWidth() / 2f, surfaceView.getHeight() / 2f);
-        matrix.postScale(facesView.getWidth() / 2000f, facesView.getHeight() / 2000f);
-        matrix.postTranslate(facesView.getWidth() / 2f, facesView.getHeight() / 2f);
+        matrix.postScale(surfaceView.getWidth() / 2000f, surfaceView.getHeight() / 2000f);
+        matrix.postTranslate(surfaceView.getWidth() / 2f, surfaceView.getHeight() / 2f);
         return matrix;
     }
 
@@ -263,44 +277,13 @@ public class FaceDetectorActivity extends AppCompatActivity {
         }
     }
 
-    private void startOrientationListener() {
-        OrientationEventListener orientationEventListener = new OrientationEventListener(this) {
-            @Override
-            public void onOrientationChanged(int orientation) {
-                //计算手机当前方向的角度值
-//                int phoneDegree = 0;
-//                if (((orientation >= 0) && (orientation <= 45)) || (orientation > 315) && (orientation <= 360)) {
-//                    phoneDegree = 0;
-//                } else if ((orientation > 45) && (orientation <= 135)) {
-//                    phoneDegree = 90;
-//                } else if ((orientation > 135) && (orientation <= 225)) {
-//                    phoneDegree = 180;
-//                } else if ((orientation > 225) && (orientation <= 315)) {
-//                    phoneDegree = 270;
-//                }
-//                //分别计算前后置摄像头需要旋转的角度
-//                Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-//                Camera.getCameraInfo(Camera.CameraInfo.CAMERA_FACING_FRONT, cameraInfo);
-//                int mOrientation = (cameraInfo.orientation - phoneDegree + 360) % 360;
-//                if(mCamera != null){
-//                    mCamera.setDisplayOrientation(mOrientation);
-//                }
-                if(gpuImageView != null){
-                    gpuImageView.setRotation(getRotation(getCameraOrientation()));
-                }
-            }
-        };
-       // orientationEventListener.enable();
-    }
-
-
-        /**
-         * 在摄像头启动前设置参数
-         *
-         * @param camera
-         * @param width
-         * @param height
-         */
+    /**
+     * 在摄像头启动前设置参数
+     *
+     * @param camera
+     * @param width
+     * @param height
+     */
     private void setCameraParms(Camera camera, int width, int height) {
         // 获取摄像头支持的pictureSize列表
         Camera.Parameters parameters = camera.getParameters();
@@ -315,22 +298,22 @@ public class FaceDetectorActivity extends AppCompatActivity {
         float h = pictureSize.height;
         parameters.setPictureSize(pictureSize.width, pictureSize.height);
 
+        surfaceView.setLayoutParams(new FrameLayout.LayoutParams((int) (height * (h / w)), height));
 
         // 获取摄像头支持的PreviewSize列表
         List<Camera.Size> previewSizeList = parameters.getSupportedPreviewSizes();
         Camera.Size preSize = getProperSize(previewSizeList, (float) height / width);
-//        if (null != preSize) {
-//            parameters.setPreviewSize(preSize.width, preSize.height);
-//        }
-        parameters.setPreviewSize(640, 480);
+        if (null != preSize) {
+            parameters.setPreviewSize(preSize.width, preSize.height);
+        }
+
         parameters.setJpegQuality(100);
         if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
             // 连续对焦
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
-        parameters.setRotation(getCameraOrientation());
         camera.cancelAutoFocus();
-        camera.setDisplayOrientation(getCameraOrientation());
+        camera.setDisplayOrientation(90);
         camera.setParameters(parameters);
     }
 

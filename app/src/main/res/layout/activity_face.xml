@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent" >
+    <jp.co.cyberagent.android.gpuimage.GPUImageView
+        android:id="@+id/gpuimage"
+        android:layout_width="640dp"
+        android:layout_height="480dp"></jp.co.cyberagent.android.gpuimage.GPUImageView>
+    <com.facedetector.customview.DrawFacesView
+        android:id="@+id/drawFacesView"
+        android:layout_width="640dp"
+        android:layout_height="480dp" />
+</FrameLayout>
